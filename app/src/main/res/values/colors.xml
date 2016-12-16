@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#3F51B5</color>
+    <color name="colorPrimaryDark">#303F9F</color>
+    <color name="colorAccent">#FF4081</color>
+    <color name="color_accent">#fe5722</color>
+    <color name="primary_color">#ff7143</color>
+    <color name="login">#fe5411</color>
+    <color name="loading_background_overlay_color">#c8000000</color>
+    <color name="unselected_tab_color">#969696</color>
+</resources>

@@ -1,0 +1,37 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 23
+    buildToolsVersion "23.0.3"
+
+    defaultConfig {
+        applicationId "diy.ananth.looper"
+        minSdkVersion 16
+        targetSdkVersion 23
+        versionCode 5
+        versionName "1.4"
+        generatedDensities = []
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+    // This is handled for you by the 2.0+ Gradle Plugin
+    aaptOptions {
+        additionalParameters "--no-version-vectors"
+    }
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    testCompile 'junit:junit:4.12'
+    compile 'com.android.support:appcompat-v7:24.0.0'
+    compile 'com.writingminds:FFmpegAndroid:0.3.2'
+    compile 'com.jakewharton:butterknife:7.0.1'
+    compile 'com.google.firebase:firebase-ads:9.6.0'
+    compile 'com.facebook.android:facebook-android-sdk:[4,5)'
+}
+
+apply plugin: 'com.google.gms.google-services'
