@@ -1,5 +1,6 @@
 package diy.ananth.looper;
 
+import android.app.Activity;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -52,6 +53,7 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
     private static Utilities utils;
     private String currentSongPath, currentSongTitle;
     public static int oneTimeOnly = 0;
+    private Activity mActivity;
     private String TAG;
     private ArrayList<HashMap<String, String>> songsList = new ArrayList<HashMap<String, String>>();
 
@@ -94,34 +96,71 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
         try {
             if (!btn_mark2.isEnabled()) {
                 final CheapSoundFile.ProgressListener listener = new CheapSoundFile.ProgressListener() {
-                    public boolean reportProgress(double frac) {
+                    @Override
+                    public boolean reportProgress(double fractionComplete) {
                         return true;
                     }
                 };
 
                 String outPath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/Looper/"
-                        + currentSongTitle + "-Loop.mp3";
+                        + currentSongTitle + "-Loop" + System.currentTimeMillis() + ".mp3";
                 File outFile = new File(outPath);
 
                 CheapSoundFile cheapSoundFile = CheapSoundFile.create(currentSongPath, listener);
+                //CheapMP3 cheapSoundFile = (CheapMP3) CheapMP3.create(currentSongPath, listener);
 
                 int mSampleRate = cheapSoundFile.getSampleRate();
 
                 int mSamplesPerFrame = cheapSoundFile.getSamplesPerFrame();
 
-                int startFrame = Utilities.secondsToFrames(markStart/1000, mSampleRate, mSamplesPerFrame);
+                int startFrame = Utilities.secondsToFrames(markStart / 1000, mSampleRate, mSamplesPerFrame);
 
-                int endFrame = Utilities.secondsToFrames(markEnd/1000, mSampleRate, mSamplesPerFrame);
+                int endFrame = Utilities.secondsToFrames(markEnd / 1000, mSampleRate, mSamplesPerFrame);
 
                 cheapSoundFile.WriteFile(outFile, startFrame, endFrame - startFrame);
 
                 btn_save.setEnabled(false);
                 btn_save.setBackgroundColor(getResources().getColor(R.color.unselected_tab_color));
 
+                /*IConvertCallback callback = new IConvertCallback() {
+                    @Override
+                    public void onSuccess(File convertedFile) {
+                        // So fast? Love it!
+                        Toast.makeText(mActivity, "Loop Saved", Toast.LENGTH_LONG).show();
+                    }
+
+                    @Override
+                    public void onFailure(Exception error) {
+                        // Oops! Something went wrong
+                        Toast.makeText(mActivity, "Saving Failed", Toast.LENGTH_LONG).show();
+                    }
+                };
+                AndroidAudioConverter.with(this)
+                        // Your current audio file
+                        .setFile(outFile)
+                        // Your desired audio format
+                        .setFormat(AudioFormat.MP3)
+                        // An callback to know when conversion is finished
+                        .setCallback(callback)
+                        // Start conversion
+                        .convert();*/
+
+                /*Mp3File mp3file = new Mp3File(outPath);
+                ID3v2 id3v2Tag;
+                if (mp3file.hasId3v2Tag()) {
+                    id3v2Tag = mp3file.getId3v2Tag();
+                } else {
+                    // mp3 does not have an ID3v2 tag, let's create one..
+                    id3v2Tag = new ID3v24Tag();
+                    mp3file.setId3v2Tag(id3v2Tag);
+                }
+                id3v2Tag.setPublisher("Antweb");*/
+
                 Toast.makeText(this, "Loop Saved", Toast.LENGTH_LONG).show();
             }
         } catch (Exception e) {
             e.printStackTrace();
+            Toast.makeText(this, "Saving Error", Toast.LENGTH_LONG).show();
         }
     }
 
@@ -188,6 +227,8 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
         btn_mark2.setBackgroundColor(getResources().getColor(R.color.primary_color));
         btn_clear.setEnabled(false);
         btn_clear.setBackgroundColor(getResources().getColor(R.color.unselected_tab_color));
+        btn_save.setEnabled(false);
+        btn_save.setBackgroundColor(getResources().getColor(R.color.unselected_tab_color));
         markStart = markEnd = 0;
         seekbar.setEnabled(true);
 
@@ -201,6 +242,20 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
+
+        /*mActivity = this;
+
+        AndroidAudioConverter.load(this, new ILoadCallback() {
+            @Override
+            public void onSuccess() {
+                // Great!
+            }
+
+            @Override
+            public void onFailure(Exception error) {
+                // FFmpeg is not supported by device
+            }
+        });*/
 
         FacebookSdk.sdkInitialize(getApplicationContext());
         AppEventsLogger.activateApp(this);
@@ -236,11 +291,23 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
             success = folder.mkdir();
         }
         if (success) {
-            Toast.makeText(this, "Folder created", Toast.LENGTH_LONG).show();
+            //Toast.makeText(this, "Folder created", Toast.LENGTH_LONG).show();
         } else {
-            Toast.makeText(this, "Folder not created", Toast.LENGTH_LONG).show();
+            //Toast.makeText(this, "Folder not created", Toast.LENGTH_LONG).show();
         }
+    }
 
+    void initialReset() {
+        btn_mark1.setEnabled(true);
+        btn_mark1.setBackgroundColor(getResources().getColor(R.color.primary_color));
+        btn_mark2.setEnabled(true);
+        btn_mark2.setBackgroundColor(getResources().getColor(R.color.primary_color));
+        btn_clear.setEnabled(false);
+        btn_clear.setBackgroundColor(getResources().getColor(R.color.unselected_tab_color));
+        btn_save.setEnabled(false);
+        btn_save.setBackgroundColor(getResources().getColor(R.color.unselected_tab_color));
+        markStart = markEnd = 0;
+        seekbar.setEnabled(true);
     }
 
     /**
@@ -256,6 +323,7 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
             currentSongTitle = data.getExtras().getString("songTitle");
             // play selected song
             playSong(currentSongPath, currentSongTitle);
+            initialReset();
         }
     }
 
