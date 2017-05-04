@@ -35,6 +35,7 @@
                     android:textSize="40sp" />
 
                 <ImageView
+                    android:id="@+id/looper_image"
                     android:layout_width="100dp"
                     android:layout_height="100dp"
                     android:background="@drawable/loop" />

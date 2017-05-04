@@ -1,5 +1,9 @@
 package diy.ananth.looper;
 
+import android.os.Environment;
+
+import java.io.File;
+
 /**
  * Created by Ananth on 10/5/16.
  */
@@ -9,25 +13,26 @@ public class Utilities {
      * Function to convert milliseconds time to
      * Timer Format
      * Hours:Minutes:Seconds
-     * */
-    public String milliSecondsToTimer(long milliseconds){
+     */
+    public String milliSecondsToTimer(long milliseconds) {
         String finalTimerString = "";
         String secondsString = "";
 
         // Convert total duration into time
-        int hours = (int)( milliseconds / (1000*60*60));
-        int minutes = (int)(milliseconds % (1000*60*60)) / (1000*60);
-        int seconds = (int) ((milliseconds % (1000*60*60)) % (1000*60) / 1000);
+        int hours = (int) (milliseconds / (1000 * 60 * 60));
+        int minutes = (int) (milliseconds % (1000 * 60 * 60)) / (1000 * 60);
+        int seconds = (int) ((milliseconds % (1000 * 60 * 60)) % (1000 * 60) / 1000);
         // Add hours if there
-        if(hours > 0){
+        if (hours > 0) {
             finalTimerString = hours + ":";
         }
 
         // Prepending 0 to seconds if it is one digit
-        if(seconds < 10){
+        if (seconds < 10) {
             secondsString = "0" + seconds;
-        }else{
-            secondsString = "" + seconds;}
+        } else {
+            secondsString = "" + seconds;
+        }
 
         finalTimerString = finalTimerString + minutes + ":" + secondsString;
 
@@ -37,17 +42,18 @@ public class Utilities {
 
     /**
      * Function to get Progress percentage
+     *
      * @param currentDuration
      * @param totalDuration
-     * */
-    public int getProgressPercentage(long currentDuration, long totalDuration){
+     */
+    public int getProgressPercentage(long currentDuration, long totalDuration) {
         Double percentage = (double) 0;
 
         long currentSeconds = (int) (currentDuration / 1000);
         long totalSeconds = (int) (totalDuration / 1000);
 
         // calculating percentage
-        percentage =(((double)currentSeconds)/totalSeconds)*100;
+        percentage = (((double) currentSeconds) / totalSeconds) * 100;
 
         // return percentage
         return percentage.intValue();
@@ -55,16 +61,27 @@ public class Utilities {
 
     /**
      * Function to change progress to timer
-     * @param progress -
-     * @param totalDuration
-     * returns current duration in milliseconds
-     * */
+     *
+     * @param progress      -
+     * @param totalDuration returns current duration in milliseconds
+     */
     public int progressToTimer(int progress, int totalDuration) {
         int currentDuration = 0;
         totalDuration = (int) (totalDuration / 1000);
-        currentDuration = (int) ((((double)progress) / 100) * totalDuration);
+        currentDuration = (int) ((((double) progress) / 100) * totalDuration);
 
         // return current duration in milliseconds
         return currentDuration * 1000;
     }
+
+    public static int secondsToFrames(double seconds, int mSampleRate,
+                                      int mSamplesPerFrame) {
+        return (int) (1.0 * seconds * mSampleRate / mSamplesPerFrame + 0.5);
+    }
+
+    /*public static String getFilenameWithExtension(String extension) {
+        String rootPath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/Looper/";
+        File file = new File(rootPath);
+        return (file.getAbsolutePath() + "/" + System.currentTimeMillis() + "_" + mMobileNumber + "." + extension);
+    }*/
 }

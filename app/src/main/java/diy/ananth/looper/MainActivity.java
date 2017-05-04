@@ -11,6 +11,7 @@ import android.content.pm.PackageManager;
 import android.media.MediaPlayer;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
@@ -22,6 +23,7 @@ import android.widget.LinearLayout;
 import android.widget.RemoteViews;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.facebook.FacebookSdk;
 import com.facebook.appevents.AppEventsLogger;
@@ -29,6 +31,7 @@ import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.MobileAds;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -86,6 +89,42 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
     @Bind(R.id.btn_save)
     Button btn_save;
 
+    @OnClick(R.id.btn_save)
+    void saveLoop() {
+        try {
+            if (!btn_mark2.isEnabled()) {
+                final CheapSoundFile.ProgressListener listener = new CheapSoundFile.ProgressListener() {
+                    public boolean reportProgress(double frac) {
+                        return true;
+                    }
+                };
+
+                String outPath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/Looper/"
+                        + currentSongTitle + "-Loop.mp3";
+                File outFile = new File(outPath);
+
+                CheapSoundFile cheapSoundFile = CheapSoundFile.create(currentSongPath, listener);
+
+                int mSampleRate = cheapSoundFile.getSampleRate();
+
+                int mSamplesPerFrame = cheapSoundFile.getSamplesPerFrame();
+
+                int startFrame = Utilities.secondsToFrames(markStart/1000, mSampleRate, mSamplesPerFrame);
+
+                int endFrame = Utilities.secondsToFrames(markEnd/1000, mSampleRate, mSamplesPerFrame);
+
+                cheapSoundFile.WriteFile(outFile, startFrame, endFrame - startFrame);
+
+                btn_save.setEnabled(false);
+                btn_save.setBackgroundColor(getResources().getColor(R.color.unselected_tab_color));
+
+                Toast.makeText(this, "Loop Saved", Toast.LENGTH_LONG).show();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     private static RemoteViews notificationView;
     private static Notification notification;
     private static NotificationManager notificationManager;
@@ -98,7 +137,6 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
             startActivityForResult(i, 100);
         }
     }
-
 
     @OnClick(R.id.btn_pp)
     void buttonClick() {
@@ -192,6 +230,17 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
         AdRequest adRequest = new AdRequest.Builder().build();
         mAdView.loadAd(adRequest);
 
+        File folder = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/Looper");
+        boolean success = true;
+        if (!folder.exists()) {
+            success = folder.mkdir();
+        }
+        if (success) {
+            Toast.makeText(this, "Folder created", Toast.LENGTH_LONG).show();
+        } else {
+            Toast.makeText(this, "Folder not created", Toast.LENGTH_LONG).show();
+        }
+
     }
 
     /**
@@ -210,11 +259,6 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
         }
     }
 
-    /**
-     * Function to play a song
-     *
-     * @param songPath, songTitle
-     */
     public void playSong(String currentSongPath, String currentSongTitle) {
         // Play song
         try {
