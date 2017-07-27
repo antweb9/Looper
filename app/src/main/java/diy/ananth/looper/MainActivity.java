@@ -1,5 +1,6 @@
 package diy.ananth.looper;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.Notification;
 import android.app.NotificationManager;
@@ -15,10 +16,15 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.annotation.RequiresApi;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.RemoteViews;
@@ -44,6 +50,8 @@ import butterknife.OnClick;
 
 public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBarChangeListener {
 
+    public static final int PERMISSIONS_MULTIPLE_REQUEST = 123;
+
     private static MediaPlayer mediaPlayer;
     private double startTime = 0;
     private double finalTime = 0;
@@ -53,9 +61,9 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
     private static Utilities utils;
     private String currentSongPath, currentSongTitle;
     public static int oneTimeOnly = 0;
-    private Activity mActivity;
     private String TAG;
     private ArrayList<HashMap<String, String>> songsList = new ArrayList<HashMap<String, String>>();
+    private Activity mActivity;
 
 
     @Bind(R.id.btn_ss)
@@ -93,34 +101,35 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
 
     @OnClick(R.id.btn_save)
     void saveLoop() {
-        try {
-            if (!btn_mark2.isEnabled()) {
-                final CheapSoundFile.ProgressListener listener = new CheapSoundFile.ProgressListener() {
-                    @Override
-                    public boolean reportProgress(double fractionComplete) {
-                        return true;
-                    }
-                };
+        if (isWritingPermissionGranted()) {
+            try {
+                if (!btn_mark2.isEnabled()) {
+                    final CheapSoundFile.ProgressListener listener = new CheapSoundFile.ProgressListener() {
+                        @Override
+                        public boolean reportProgress(double fractionComplete) {
+                            return true;
+                        }
+                    };
 
-                String outPath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/Looper/"
-                        + currentSongTitle + "-Loop" + System.currentTimeMillis() + ".mp3";
-                File outFile = new File(outPath);
+                    String outPath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/Looper/"
+                            + currentSongTitle + "-Loop" + System.currentTimeMillis() + ".mp3";
+                    File outFile = new File(outPath);
 
-                CheapSoundFile cheapSoundFile = CheapSoundFile.create(currentSongPath, listener);
-                //CheapMP3 cheapSoundFile = (CheapMP3) CheapMP3.create(currentSongPath, listener);
+                    CheapSoundFile cheapSoundFile = CheapSoundFile.create(currentSongPath, listener);
+                    //CheapMP3 cheapSoundFile = (CheapMP3) CheapMP3.create(currentSongPath, listener);
 
-                int mSampleRate = cheapSoundFile.getSampleRate();
+                    int mSampleRate = cheapSoundFile.getSampleRate();
 
-                int mSamplesPerFrame = cheapSoundFile.getSamplesPerFrame();
+                    int mSamplesPerFrame = cheapSoundFile.getSamplesPerFrame();
 
-                int startFrame = Utilities.secondsToFrames(markStart / 1000, mSampleRate, mSamplesPerFrame);
+                    int startFrame = Utilities.secondsToFrames(markStart / 1000, mSampleRate, mSamplesPerFrame);
 
-                int endFrame = Utilities.secondsToFrames(markEnd / 1000, mSampleRate, mSamplesPerFrame);
+                    int endFrame = Utilities.secondsToFrames(markEnd / 1000, mSampleRate, mSamplesPerFrame);
 
-                cheapSoundFile.WriteFile(outFile, startFrame, endFrame - startFrame);
+                    cheapSoundFile.WriteFile(outFile, startFrame, endFrame - startFrame);
 
-                btn_save.setEnabled(false);
-                btn_save.setBackgroundColor(getResources().getColor(R.color.unselected_tab_color));
+                    btn_save.setEnabled(false);
+                    btn_save.setBackgroundColor(getResources().getColor(R.color.unselected_tab_color));
 
                 /*IConvertCallback callback = new IConvertCallback() {
                     @Override
@@ -156,11 +165,12 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
                 }
                 id3v2Tag.setPublisher("Antweb");*/
 
-                Toast.makeText(this, "Loop Saved", Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, "Loop Saved", Toast.LENGTH_LONG).show();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                Toast.makeText(this, "Saving Error", Toast.LENGTH_LONG).show();
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-            Toast.makeText(this, "Saving Error", Toast.LENGTH_LONG).show();
         }
     }
 
@@ -170,7 +180,6 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
 
     @OnClick(R.id.btn_ss)
     void songSelect() {
-        isStoragePermissionGranted();
         if (isStoragePermissionGranted()) {
             Intent i = new Intent(getApplicationContext(), PlayListActivity.class);
             startActivityForResult(i, 100);
@@ -242,6 +251,7 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
+        mActivity = this;
 
         /*mActivity = this;
 
@@ -295,6 +305,8 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
         } else {
             //Toast.makeText(this, "Folder not created", Toast.LENGTH_LONG).show();
         }
+
+        checkAndroidVersion();
     }
 
     void initialReset() {
@@ -443,7 +455,6 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
         super.onDestroy();
     }
 
-
     public boolean isStoragePermissionGranted() {
         if (Build.VERSION.SDK_INT >= 23) {
             if (checkSelfPermission(android.Manifest.permission.READ_EXTERNAL_STORAGE)
@@ -451,9 +462,25 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
                 Log.v(TAG, "Permission is granted");
                 return true;
             } else {
-
                 Log.v(TAG, "Permission is revoked");
-                ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.READ_EXTERNAL_STORAGE}, 1);
+                ActivityCompat.requestPermissions(mActivity, new String[]{android.Manifest.permission.READ_EXTERNAL_STORAGE}, 1);
+                return false;
+            }
+        } else { //permission is automatically granted on sdk<23 upon installation
+            Log.v(TAG, "Permission is granted");
+            return true;
+        }
+    }
+
+    public boolean isWritingPermissionGranted() {
+        if (Build.VERSION.SDK_INT >= 23) {
+            if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    == PackageManager.PERMISSION_GRANTED) {
+                Log.v(TAG, "Permission is granted");
+                return true;
+            } else {
+                Log.v(TAG, "Permission is revoked");
+                ActivityCompat.requestPermissions(mActivity, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
                 return false;
             }
         } else { //permission is automatically granted on sdk<23 upon installation
@@ -524,6 +551,84 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
         @Override
         public void onTaskRemoved(Intent rootIntent) {
             onDestroy();
+        }
+    }
+
+    private void checkAndroidVersion() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            checkPermission();
+        } else {
+            // write your logic here
+        }
+
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.M)
+    private void checkPermission() {
+        if (ContextCompat.checkSelfPermission(mActivity,
+                android.Manifest.permission.READ_EXTERNAL_STORAGE) + ContextCompat
+                .checkSelfPermission(mActivity,
+                        android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            if (ActivityCompat.shouldShowRequestPermissionRationale
+                    (mActivity, android.Manifest.permission.READ_EXTERNAL_STORAGE) ||
+                    ActivityCompat.shouldShowRequestPermissionRationale
+                            (mActivity, android.Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+
+                Snackbar.make(mActivity.findViewById(android.R.id.content),
+                        "Please Grant Permissions to upload profile photo",
+                        Snackbar.LENGTH_INDEFINITE).setAction("ENABLE",
+                        new View.OnClickListener() {
+                            @RequiresApi(api = Build.VERSION_CODES.M)
+                            @Override
+                            public void onClick(View v) {
+                                requestPermissions(
+                                        new String[]{android.Manifest.permission
+                                                .READ_EXTERNAL_STORAGE, android.Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                                        PERMISSIONS_MULTIPLE_REQUEST);
+                            }
+                        }).show();
+            } else {
+                requestPermissions(
+                        new String[]{android.Manifest.permission
+                                .READ_EXTERNAL_STORAGE, android.Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                        PERMISSIONS_MULTIPLE_REQUEST);
+            }
+        } else {
+            // write your logic code if permission already granted
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           @NonNull String[] permissions, @NonNull int[] grantResults) {
+
+        switch (requestCode) {
+            case PERMISSIONS_MULTIPLE_REQUEST:
+                if (grantResults.length > 0) {
+                    boolean writeExternalFile = grantResults[1] == PackageManager.PERMISSION_GRANTED;
+                    boolean readExternalFile = grantResults[0] == PackageManager.PERMISSION_GRANTED;
+
+                    if (writeExternalFile && readExternalFile) {
+                        // write your logic here
+                    } else {
+                        Snackbar.make(mActivity.findViewById(android.R.id.content),
+                                "Please Grant Permissions",
+                                Snackbar.LENGTH_INDEFINITE).setAction("ENABLE",
+                                new View.OnClickListener() {
+                                    @RequiresApi(api = Build.VERSION_CODES.M)
+                                    @Override
+                                    public void onClick(View v) {
+                                        requestPermissions(
+                                                new String[]{android.Manifest.permission
+                                                        .READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                                                PERMISSIONS_MULTIPLE_REQUEST);
+                                    }
+                                }).show();
+                    }
+                }
+                break;
         }
     }
 }

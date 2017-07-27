@@ -1,15 +1,15 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 23
+    compileSdkVersion 25
     buildToolsVersion "23.0.3"
 
     defaultConfig {
         applicationId "diy.ananth.looper"
         minSdkVersion 16
         targetSdkVersion 23
-        versionCode 5
-        versionName "1.4"
+        versionCode 6
+        versionName "1.5"
         generatedDensities = []
     }
     buildTypes {
@@ -27,10 +27,11 @@ android {
 dependencies {
     //compile files('libs/mp3agic-0.8.1.jar')
     testCompile 'junit:junit:4.12'
-    compile 'com.android.support:appcompat-v7:24.0.0'
+    compile 'com.android.support:appcompat-v7:25.3.1'
     compile 'com.jakewharton:butterknife:7.0.1'
     compile 'com.google.firebase:firebase-ads:9.6.0'
     compile 'com.facebook.android:facebook-android-sdk:[4,5)'
+    compile 'com.android.support:design:25.3.1'
 }
 
 apply plugin: 'com.google.gms.google-services'
