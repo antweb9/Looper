@@ -40,8 +40,6 @@ import com.google.android.gms.ads.MobileAds;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
@@ -51,19 +49,16 @@ import butterknife.OnClick;
 public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBarChangeListener {
 
     public static final int PERMISSIONS_MULTIPLE_REQUEST = 123;
+    public static final String TAG = "MainActivity";
 
     private static MediaPlayer mediaPlayer;
-    private double startTime = 0;
-    private double finalTime = 0;
     private double markStart = 0;
     private double markEnd = 0;
     private static Handler myHandler = new Handler();
     private static Utilities utils;
     private String currentSongPath, currentSongTitle;
-    public static int oneTimeOnly = 0;
-    private String TAG;
-    private ArrayList<HashMap<String, String>> songsList = new ArrayList<HashMap<String, String>>();
     private Activity mActivity;
+    private static final int OUTPUT_STREAM_BUFFER = 8192;
 
 
     @Bind(R.id.btn_ss)
@@ -131,41 +126,52 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
                     btn_save.setEnabled(false);
                     btn_save.setBackgroundColor(getResources().getColor(R.color.unselected_tab_color));
 
-                /*IConvertCallback callback = new IConvertCallback() {
-                    @Override
-                    public void onSuccess(File convertedFile) {
-                        // So fast? Love it!
-                        Toast.makeText(mActivity, "Loop Saved", Toast.LENGTH_LONG).show();
-                    }
-
-                    @Override
-                    public void onFailure(Exception error) {
-                        // Oops! Something went wrong
-                        Toast.makeText(mActivity, "Saving Failed", Toast.LENGTH_LONG).show();
-                    }
-                };
-                AndroidAudioConverter.with(this)
-                        // Your current audio file
-                        .setFile(outFile)
-                        // Your desired audio format
-                        .setFormat(AudioFormat.MP3)
-                        // An callback to know when conversion is finished
-                        .setCallback(callback)
-                        // Start conversion
-                        .convert();*/
-
-                /*Mp3File mp3file = new Mp3File(outPath);
-                ID3v2 id3v2Tag;
-                if (mp3file.hasId3v2Tag()) {
-                    id3v2Tag = mp3file.getId3v2Tag();
-                } else {
-                    // mp3 does not have an ID3v2 tag, let's create one..
-                    id3v2Tag = new ID3v24Tag();
-                    mp3file.setId3v2Tag(id3v2Tag);
-                }
-                id3v2Tag.setPublisher("Antweb");*/
+                    /*MusicMetadataSet src_set = new MyID3().read(outFile);
+                    if (src_set == null) {
+                        Log.i(TAG, "Null Source");
+                    } else {
+                        File dst = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/Looper/"
+                                + currentSongTitle + "-Loop" + System.currentTimeMillis() + ".mp3");
+                        MusicMetadata meta = new MusicMetadata("Name");
+                        meta.setAlbum("Looper");
+                        new MyID3().write(outFile, dst, src_set, meta);
+                    }*/
 
                     Toast.makeText(this, "Loop Saved", Toast.LENGTH_LONG).show();
+
+                    /*IConvertCallback callback = new IConvertCallback() {
+                        @Override
+                        public void onSuccess(File convertedFile) {
+                            // So fast? Love it!
+                            Toast.makeText(mActivity, "Loop Saved", Toast.LENGTH_LONG).show();
+                        }
+
+                        @Override
+                        public void onFailure(Exception error) {
+                            // Oops! Something went wrong
+                            Toast.makeText(mActivity, "Saving Failed", Toast.LENGTH_LONG).show();
+                        }
+                    };
+                    AndroidAudioConverter.with(this)
+                            // Your current audio file
+                            .setFile(outFile)
+                            // Your desired audio format
+                            .setFormat(AudioFormat.MP3)
+                            // An callback to know when conversion is finished
+                            .setCallback(callback)
+                            // Start conversion
+                            .convert();*/
+
+                    /*Mp3File mp3file = new Mp3File(outPath);
+                    ID3v2 id3v2Tag;
+                    if (mp3file.hasId3v2Tag()) {
+                        id3v2Tag = mp3file.getId3v2Tag();
+                    } else {
+                        // mp3 does not have an ID3v2 tag, let's create one..
+                        id3v2Tag = new ID3v24Tag();
+                        mp3file.setId3v2Tag(id3v2Tag);
+                    }
+                    id3v2Tag.setPublisher("Antweb");*/
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -253,17 +259,17 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
         ButterKnife.bind(this);
         mActivity = this;
 
-        /*mActivity = this;
-
-        AndroidAudioConverter.load(this, new ILoadCallback() {
+        /*AndroidAudioConverter.load(this, new ILoadCallback() {
             @Override
             public void onSuccess() {
                 // Great!
+                Log.v(TAG, "Ffmpeg Loaded");
             }
 
             @Override
             public void onFailure(Exception error) {
                 // FFmpeg is not supported by device
+                Log.v(TAG, "Ffmpeg Not Supported");
             }
         });*/
 
@@ -577,7 +583,7 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
                             (mActivity, android.Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
 
                 Snackbar.make(mActivity.findViewById(android.R.id.content),
-                        "Please Grant Permissions to upload profile photo",
+                        "Please Grant Permissions",
                         Snackbar.LENGTH_INDEFINITE).setAction("ENABLE",
                         new View.OnClickListener() {
                             @RequiresApi(api = Build.VERSION_CODES.M)

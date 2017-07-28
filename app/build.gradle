@@ -25,7 +25,6 @@ android {
 }
 
 dependencies {
-    //compile files('libs/mp3agic-0.8.1.jar')
     testCompile 'junit:junit:4.12'
     compile 'com.android.support:appcompat-v7:25.3.1'
     compile 'com.jakewharton:butterknife:7.0.1'
