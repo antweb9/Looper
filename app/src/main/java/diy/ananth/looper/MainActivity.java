@@ -94,6 +94,15 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
     @Bind(R.id.btn_save)
     Button btn_save;
 
+    @OnClick(R.id.looper_image)
+    void goToLoops() {
+        if (isStoragePermissionGranted()) {
+            Intent i = new Intent(getApplicationContext(), PlayListActivity.class);
+            i.putExtra("LoopOrNot", true);
+            startActivityForResult(i, 100);
+        }
+    }
+
     @OnClick(R.id.btn_save)
     void saveLoop() {
         if (isWritingPermissionGranted()) {
@@ -137,7 +146,7 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
                         new MyID3().write(outFile, dst, src_set, meta);
                     }*/
 
-                    Toast.makeText(this, "Loop Saved", Toast.LENGTH_LONG).show();
+                    Toast.makeText(mActivity, "Loop Saved", Toast.LENGTH_LONG).show();
 
                     /*IConvertCallback callback = new IConvertCallback() {
                         @Override
@@ -175,7 +184,7 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
                 }
             } catch (Exception e) {
                 e.printStackTrace();
-                Toast.makeText(this, "Saving Error", Toast.LENGTH_LONG).show();
+                Toast.makeText(mActivity, "Saving Error", Toast.LENGTH_LONG).show();
             }
         }
     }
@@ -188,6 +197,7 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
     void songSelect() {
         if (isStoragePermissionGranted()) {
             Intent i = new Intent(getApplicationContext(), PlayListActivity.class);
+            i.putExtra("LoopOrNot", false);
             startActivityForResult(i, 100);
         }
     }
@@ -342,6 +352,10 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
             // play selected song
             playSong(currentSongPath, currentSongTitle);
             initialReset();
+        } else if (resultCode == 200) {
+            Toast.makeText(mActivity, "No Loops!", Toast.LENGTH_SHORT).show();
+        } else if (resultCode == 300) {
+            Toast.makeText(mActivity, "No Songs!", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -352,6 +366,8 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
             mediaPlayer.setDataSource(currentSongPath);
             mediaPlayer.prepare();
             mediaPlayer.start();
+            if (currentSongPath.contains("/Looper/"))
+                mediaPlayer.setLooping(true);
             // Displaying Song title
             song_name.setText(currentSongTitle);
 

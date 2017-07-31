@@ -32,18 +32,18 @@
                     android:layout_height="wrap_content"
                     android:text="Looper"
                     android:textColor="@color/primary_color"
-                    android:textSize="40sp" />
+                    android:textSize="35sp" />
 
                 <ImageView
                     android:id="@+id/looper_image"
-                    android:layout_width="100dp"
-                    android:layout_height="100dp"
+                    android:layout_width="70dp"
+                    android:layout_height="70dp"
                     android:background="@drawable/loop" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Select a song. While playing press MARK 1 where you want the loop to begin and press MARK 2 where you want the loop to end. It will auto-loop and you can also CLEAR the loop while playing.\n> / || is Play / Pause.\nEnjoy your favorite song parts!"
+                    android:text="Select a song. While playing press MARK 1 where you want the loop to begin and press MARK 2 where you want the loop to end. It will auto-loop and you can also CLEAR the loop while playing.\n> / || is Play / Pause.\nFiles are saved in Looper folder in File Explorer.\nClick Looper Icon above to view saved Loops.\nOnly Loops will be repeated by the player.\nEnjoy your favorite song parts!"
                     android:textAlignment="center"
                     android:textColor="@color/primary_color"
                     android:textSize="12sp" />

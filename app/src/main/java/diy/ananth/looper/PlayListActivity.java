@@ -10,6 +10,7 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.MediaStore;
 import android.view.View;
 import android.widget.AdapterView;
@@ -18,6 +19,7 @@ import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.SimpleAdapter;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -33,7 +35,20 @@ public class PlayListActivity extends ListActivity {
 
         final ArrayList<HashMap<String, String>> songsListData = new ArrayList<HashMap<String, String>>();
 
-        this.songsList = getPlayList();
+        if (getIntent().hasExtra("LoopOrNot")) {
+            if (getIntent().getBooleanExtra("LoopOrNot", false)) {
+                this.songsList = getLoops();
+                if (songsList.size() == 0)
+                    closeActivity(200);
+            } else {
+                this.songsList = getPlayList();
+                if (songsList.size() == 0)
+                    closeActivity(300);
+            }
+        } else
+            this.songsList = getPlayList();
+        if (songsList.size() == 0)
+            closeActivity(300);
 
         if (this.songsList == null)
             return;
@@ -79,6 +94,15 @@ public class PlayListActivity extends ListActivity {
         });
     }
 
+    private void closeActivity(int i) {
+        // Starting new intent
+        Intent in = new Intent(getApplicationContext(),
+                MainActivity.class);
+        setResult(i, in);
+        // Closing PlayListView
+        finish();
+    }
+
     /**
      * Function to read all mp3 files from sdcard
      * and store the details in ArrayList
@@ -118,6 +142,24 @@ public class PlayListActivity extends ListActivity {
         }
 
         cur.close();
+
+        // return songs list array
+        return songsList;
+    }
+
+    public ArrayList<HashMap<String, String>> getLoops() {
+
+        String path = Environment.getExternalStorageDirectory().toString() + "/Looper/";
+        File directory = new File(path);
+        File[] files = directory.listFiles();
+        for (int i = 0; i < files.length; i++) {
+            HashMap<String, String> song = new HashMap<String, String>();
+            song.put("songTitle", files[i].getName());
+            song.put("songPath", files[i].getPath());
+
+            // Adding each song to SongList
+            songsList.add(song);
+        }
 
         // return songs list array
         return songsList;
