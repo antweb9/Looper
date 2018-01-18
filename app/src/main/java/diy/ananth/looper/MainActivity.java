@@ -32,8 +32,6 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.facebook.FacebookSdk;
-import com.facebook.appevents.AppEventsLogger;
 import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.MobileAds;
@@ -282,9 +280,6 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
                 Log.v(TAG, "Ffmpeg Not Supported");
             }
         });*/
-
-        FacebookSdk.sdkInitialize(getApplicationContext());
-        AppEventsLogger.activateApp(this);
 
         mediaPlayer = new MediaPlayer();
         utils = new Utilities();
