@@ -4,6 +4,7 @@ package diy.ananth.looper;
  * Created by Ananth on 10/6/16.
  */
 
+import android.app.Activity;
 import android.app.ListActivity;
 import android.content.ContentResolver;
 import android.content.Intent;
@@ -12,9 +13,13 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.support.design.widget.Snackbar;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
+import android.widget.EditText;
 import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.SimpleAdapter;
@@ -26,6 +31,9 @@ import java.util.HashMap;
 public class PlayListActivity extends ListActivity {
     // Songs list
     public ArrayList<HashMap<String, String>> songsList = new ArrayList<HashMap<String, String>>();
+    private static ArrayList<HashMap<String, String>> searchResults;
+    private EditText songNameSearch;
+    private Activity mActivity;
     private String TAG;
 
     @Override
@@ -33,7 +41,9 @@ public class PlayListActivity extends ListActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.playlist);
 
+        mActivity = this;
         final ArrayList<HashMap<String, String>> songsListData = new ArrayList<HashMap<String, String>>();
+        songNameSearch = findViewById(R.id.song_name);
 
         if (getIntent().hasExtra("LoopOrNot")) {
             if (getIntent().getBooleanExtra("LoopOrNot", false)) {
@@ -63,11 +73,11 @@ public class PlayListActivity extends ListActivity {
         }
 
         // Adding menuItems to ListView
-        ListAdapter adapter = new SimpleAdapter(this, songsListData,
+        final ListAdapter[] adapter = {new SimpleAdapter(this, songsListData,
                 R.layout.playlist_item, new String[]{"songTitle"}, new int[]{
-                R.id.songTitle});
+                R.id.songTitle})};
 
-        setListAdapter(adapter);
+        setListAdapter(adapter[0]);
 
         // selecting single ListView item
         ListView lv = getListView();
@@ -90,6 +100,50 @@ public class PlayListActivity extends ListActivity {
                 setResult(100, in);
                 // Closing PlayListView
                 finish();
+            }
+        });
+
+        searchResults = new ArrayList<HashMap<String, String>>();
+        songNameSearch.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void onTextChanged(CharSequence cs, int arg1, int arg2, int arg3) {
+                // When user changed the Text
+                try {
+                    int textlength = songNameSearch.getText().length();
+                    String searchString = songNameSearch.getText().toString();
+                    searchResults.clear();
+                    String attr = null;
+                    for (int i = 0; i < songsList.size(); i++) {
+                        attr = songsList.get(i).get("songTitle").toLowerCase().trim();
+                        if (textlength <= attr.length()) {
+                            if (attr.contains(searchString)) {
+                                searchResults.add(songsList.get(i));
+                            }
+                        }
+                    }
+                    adapter[0] = new SimpleAdapter(mActivity, searchResults,
+                            R.layout.playlist_item, new String[]{"songTitle"}, new int[]{
+                            R.id.songTitle});
+
+                    setListAdapter(adapter[0]);
+                } catch (Exception e){
+                    e.printStackTrace();
+                    Snackbar.make(mActivity.findViewById(android.R.id.content),
+                            "Search Failed",
+                            Snackbar.LENGTH_INDEFINITE).show();
+                }
+            }
+
+            @Override
+            public void beforeTextChanged(CharSequence arg0, int arg1, int arg2,
+                                          int arg3) {
+                // TODO Auto-generated method stub
+
+            }
+
+            @Override
+            public void afterTextChanged(Editable arg0) {
+                // TODO Auto-generated method stub
             }
         });
     }
@@ -148,17 +202,18 @@ public class PlayListActivity extends ListActivity {
     }
 
     public ArrayList<HashMap<String, String>> getLoops() {
-
         String path = Environment.getExternalStorageDirectory().toString() + "/Looper/";
         File directory = new File(path);
         File[] files = directory.listFiles();
-        for (int i = 0; i < files.length; i++) {
-            HashMap<String, String> song = new HashMap<String, String>();
-            song.put("songTitle", files[i].getName());
-            song.put("songPath", files[i].getPath());
+        if (files != null) {
+            for (File file : files) {
+                HashMap<String, String> song = new HashMap<String, String>();
+                song.put("songTitle", file.getName());
+                song.put("songPath", file.getPath());
 
-            // Adding each song to SongList
-            songsList.add(song);
+                // Adding each song to SongList
+                songsList.add(song);
+            }
         }
 
         // return songs list array

@@ -1,13 +1,13 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 26
+    compileSdkVersion 28
     buildToolsVersion "26.0.1"
 
     defaultConfig {
         applicationId "diy.ananth.looper"
         minSdkVersion 16
-        targetSdkVersion 23
+        targetSdkVersion 28
         versionCode 8
         versionName "1.7"
         generatedDensities = []
@@ -26,9 +26,7 @@ android {
 
 dependencies {
     testCompile 'junit:junit:4.12'
-    compile('com.android.support:appcompat-v7:26.0.1'){
-        exclude module: 'animated-vector-drawable'
-    }
+    compile('com.android.support:appcompat-v7:26.0.1')
     compile 'com.jakewharton:butterknife:7.0.1'
     compile 'com.google.firebase:firebase-ads:11.8.0'
     compile('com.android.support:design:26.0.1') {

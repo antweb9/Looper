@@ -38,6 +38,7 @@ import com.google.android.gms.ads.MobileAds;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Objects;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
@@ -536,17 +537,19 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
     public static class RemoteControlReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (intent.getAction().equalsIgnoreCase("diy.ananth.looper.ACTION_PLAY")) {
-                if (mediaPlayer.isPlaying()) {
-                    mediaPlayer.pause();
-                    notificationView.setImageViewResource(R.id.play_pause, R.drawable.play);
-                    notification.contentView = notificationView;
-                    notificationManager.notify(1, notification);
-                } else {
-                    mediaPlayer.start();
-                    notificationView.setImageViewResource(R.id.play_pause, R.drawable.pause);
-                    notification.contentView = notificationView;
-                    notificationManager.notify(1, notification);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                if (Objects.requireNonNull(intent.getAction()).equalsIgnoreCase("diy.ananth.looper.ACTION_PLAY")) {
+                    if (mediaPlayer.isPlaying()) {
+                        mediaPlayer.pause();
+                        notificationView.setImageViewResource(R.id.play_pause, R.drawable.play);
+                        notification.contentView = notificationView;
+                        notificationManager.notify(1, notification);
+                    } else {
+                        mediaPlayer.start();
+                        notificationView.setImageViewResource(R.id.play_pause, R.drawable.pause);
+                        notification.contentView = notificationView;
+                        notificationManager.notify(1, notification);
+                    }
                 }
             }
         }
