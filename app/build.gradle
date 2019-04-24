@@ -7,8 +7,8 @@ android {
         applicationId "diy.ananth.looper"
         minSdkVersion 16
         targetSdkVersion 28
-        versionCode 8
-        versionName "1.7"
+        versionCode 20
+        versionName "2.0"
     }
     buildTypes {
         release {
