@@ -2,7 +2,6 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 28
-    buildToolsVersion "26.0.1"
 
     defaultConfig {
         applicationId "diy.ananth.looper"
@@ -10,7 +9,6 @@ android {
         targetSdkVersion 28
         versionCode 8
         versionName "1.7"
-        generatedDensities = []
     }
     buildTypes {
         release {
@@ -22,16 +20,17 @@ android {
     aaptOptions {
         additionalParameters "--no-version-vectors"
     }
+    compileOptions {
+        sourceCompatibility = '1.8'
+        targetCompatibility = '1.8'
+    }
 }
 
 dependencies {
-    testCompile 'junit:junit:4.12'
-    compile('com.android.support:appcompat-v7:26.0.1')
-    compile 'com.jakewharton:butterknife:7.0.1'
-    compile 'com.google.firebase:firebase-ads:11.8.0'
-    compile('com.android.support:design:26.0.1') {
+    implementation('com.android.support:appcompat-v7:27.1.1') {
         exclude module: 'animated-vector-drawable'
     }
+    implementation 'com.google.android.gms:play-services-ads:17.2.0'
 }
 
 apply plugin: 'com.google.gms.google-services'

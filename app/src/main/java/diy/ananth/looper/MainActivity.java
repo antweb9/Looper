@@ -2,32 +2,26 @@ package diy.ananth.looper;
 
 import android.Manifest;
 import android.app.Activity;
-import android.app.Notification;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
-import android.app.Service;
-import android.content.BroadcastReceiver;
-import android.content.Context;
+import android.app.AlertDialog;
+import android.app.ProgressDialog;
+import android.content.ContentValues;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
-import android.os.IBinder;
+import android.provider.MediaStore;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
-import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
-import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.view.View;
+import android.view.Window;
 import android.widget.Button;
-import android.widget.LinearLayout;
-import android.widget.RemoteViews;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -38,14 +32,12 @@ import com.google.android.gms.ads.MobileAds;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Objects;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 
-import butterknife.Bind;
-import butterknife.ButterKnife;
-import butterknife.OnClick;
+import diy.ananth.looper.soundfile.SoundFile;
 
-
-public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBarChangeListener {
+public class MainActivity extends Activity implements SeekBar.OnSeekBarChangeListener {
 
     public static final int PERMISSIONS_MULTIPLE_REQUEST = 123;
     public static final String TAG = "MainActivity";
@@ -57,233 +49,54 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
     private static Utilities utils;
     private String currentSongPath, currentSongTitle;
     private Activity mActivity;
-    private static final int OUTPUT_STREAM_BUFFER = 8192;
+    private Button SelectSong;
+    private TextView song_name;
+    private SeekBar seekbar;
+    private TextView songCurrentDuration;
+    private TextView songTotalDuration;
+    private Button btn_pp;
+    private Button btn_mark1;
+    private Button btn_mark2;
+    private Button btn_clear;
+    private Button btn_save;
+    private long mLoadingLastUpdateTime;
+    private boolean mLoadingKeepGoing;
+    private boolean mFinishActivity;
+    private ProgressDialog mProgressDialog;
+    private SoundFile mSoundFile;
+    private File mFile;
+    private String mArtist;
+    private String mTitle;
+    private String mCaption = "";
+    private Handler mHandler;
+    private TextView howToUse;
 
-
-    @Bind(R.id.btn_ss)
-    Button SelectSong;
-
-    @Bind(R.id.song_name)
-    TextView song_name;
-
-    @Bind(R.id.BottomButtons)
-    LinearLayout BottomButtons;
-
-    @Bind(R.id.seekbar)
-    SeekBar seekbar;
-
-    @Bind(R.id.songCurrentDurationLabel)
-    TextView songCurrentDuration;
-
-    @Bind(R.id.songTotalDurationLabel)
-    TextView songTotalDuration;
-
-    @Bind(R.id.btn_pp)
-    Button btn_pp;
-
-    @Bind(R.id.btn_mark1)
-    Button btn_mark1;
-
-    @Bind(R.id.btn_mark2)
-    Button btn_mark2;
-
-    @Bind(R.id.btn_clear)
-    Button btn_clear;
-
-    @Bind(R.id.btn_save)
-    Button btn_save;
-
-    @OnClick(R.id.looper_image)
-    void goToLoops() {
-        if (isStoragePermissionGranted()) {
-            Intent i = new Intent(getApplicationContext(), PlayListActivity.class);
-            i.putExtra("LoopOrNot", true);
-            startActivityForResult(i, 100);
-        }
-    }
-
-    @OnClick(R.id.btn_save)
-    void saveLoop() {
-        if (isWritingPermissionGranted()) {
-            try {
-                if (!btn_mark2.isEnabled()) {
-                    final CheapSoundFile.ProgressListener listener = new CheapSoundFile.ProgressListener() {
-                        @Override
-                        public boolean reportProgress(double fractionComplete) {
-                            return true;
-                        }
-                    };
-
-                    String outPath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/Looper/"
-                            + currentSongTitle + "-Loop" + System.currentTimeMillis() + ".mp3";
-                    File outFile = new File(outPath);
-
-                    CheapSoundFile cheapSoundFile = CheapSoundFile.create(currentSongPath, listener);
-                    //CheapMP3 cheapSoundFile = (CheapMP3) CheapMP3.create(currentSongPath, listener);
-
-                    int mSampleRate = cheapSoundFile.getSampleRate();
-
-                    int mSamplesPerFrame = cheapSoundFile.getSamplesPerFrame();
-
-                    int startFrame = Utilities.secondsToFrames(markStart / 1000, mSampleRate, mSamplesPerFrame);
-
-                    int endFrame = Utilities.secondsToFrames(markEnd / 1000, mSampleRate, mSamplesPerFrame);
-
-                    cheapSoundFile.WriteFile(outFile, startFrame, endFrame - startFrame);
-
-                    btn_save.setEnabled(false);
-                    btn_save.setBackgroundColor(getResources().getColor(R.color.unselected_tab_color));
-
-                    /*MusicMetadataSet src_set = new MyID3().read(outFile);
-                    if (src_set == null) {
-                        Log.i(TAG, "Null Source");
-                    } else {
-                        File dst = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/Looper/"
-                                + currentSongTitle + "-Loop" + System.currentTimeMillis() + ".mp3");
-                        MusicMetadata meta = new MusicMetadata("Name");
-                        meta.setAlbum("Looper");
-                        new MyID3().write(outFile, dst, src_set, meta);
-                    }*/
-
-                    Toast.makeText(mActivity, "Loop Saved", Toast.LENGTH_LONG).show();
-
-                    /*IConvertCallback callback = new IConvertCallback() {
-                        @Override
-                        public void onSuccess(File convertedFile) {
-                            // So fast? Love it!
-                            Toast.makeText(mActivity, "Loop Saved", Toast.LENGTH_LONG).show();
-                        }
-
-                        @Override
-                        public void onFailure(Exception error) {
-                            // Oops! Something went wrong
-                            Toast.makeText(mActivity, "Saving Failed", Toast.LENGTH_LONG).show();
-                        }
-                    };
-                    AndroidAudioConverter.with(this)
-                            // Your current audio file
-                            .setFile(outFile)
-                            // Your desired audio format
-                            .setFormat(AudioFormat.MP3)
-                            // An callback to know when conversion is finished
-                            .setCallback(callback)
-                            // Start conversion
-                            .convert();*/
-
-                    /*Mp3File mp3file = new Mp3File(outPath);
-                    ID3v2 id3v2Tag;
-                    if (mp3file.hasId3v2Tag()) {
-                        id3v2Tag = mp3file.getId3v2Tag();
-                    } else {
-                        // mp3 does not have an ID3v2 tag, let's create one..
-                        id3v2Tag = new ID3v24Tag();
-                        mp3file.setId3v2Tag(id3v2Tag);
-                    }
-                    id3v2Tag.setPublisher("Antweb");*/
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-                Toast.makeText(mActivity, "Saving Error", Toast.LENGTH_LONG).show();
-            }
-        }
-    }
-
-    private static RemoteViews notificationView;
-    private static Notification notification;
-    private static NotificationManager notificationManager;
-
-    @OnClick(R.id.btn_ss)
-    void songSelect() {
-        if (isStoragePermissionGranted()) {
-            Intent i = new Intent(getApplicationContext(), PlayListActivity.class);
-            i.putExtra("LoopOrNot", false);
-            startActivityForResult(i, 100);
-        }
-    }
-
-    @OnClick(R.id.btn_pp)
-    void buttonClick() {
-        if (mediaPlayer.isPlaying()) {
-            if (mediaPlayer != null)
-                mediaPlayer.pause();
-            notificationView.setImageViewResource(R.id.play_pause, R.drawable.play);
-            notification.contentView = notificationView;
-            notificationManager.notify(1, notification);
-        } else {
-            if (mediaPlayer != null)
-                mediaPlayer.start();
-            notificationView.setImageViewResource(R.id.play_pause, R.drawable.pause);
-            notification.contentView = notificationView;
-            notificationManager.notify(1, notification);
-        }
-    }
-
-    @OnClick(R.id.btn_mark1)
-    void button2Click() {
-        markStart = mediaPlayer.getCurrentPosition();
-        btn_mark1.setEnabled(false);
-        btn_mark1.setBackgroundColor(getResources().getColor(R.color.unselected_tab_color));
-    }
-
-    @OnClick(R.id.btn_mark2)
-    void button3Click() {
-        markEnd = mediaPlayer.getCurrentPosition();
-        btn_mark2.setEnabled(false);
-        btn_mark2.setBackgroundColor(getResources().getColor(R.color.unselected_tab_color));
-        mediaPlayer.seekTo((int) markStart);
-        btn_clear.setEnabled(true);
-        btn_clear.setBackgroundColor(getResources().getColor(R.color.primary_color));
-        btn_save.setEnabled(true);
-        btn_save.setBackgroundColor(getResources().getColor(R.color.primary_color));
-
-        notificationView.setTextViewText(R.id.textView2, "Loop On");
-        notification.contentView = notificationView;
-        notificationManager.notify(1, notification);
-
-        seekbar.setEnabled(false);
-    }
-
-    @OnClick(R.id.btn_clear)
-    void button4Click() {
-        btn_mark1.setEnabled(true);
-        btn_mark1.setBackgroundColor(getResources().getColor(R.color.primary_color));
-        btn_mark2.setEnabled(true);
-        btn_mark2.setBackgroundColor(getResources().getColor(R.color.primary_color));
-        btn_clear.setEnabled(false);
-        btn_clear.setBackgroundColor(getResources().getColor(R.color.unselected_tab_color));
-        btn_save.setEnabled(false);
-        btn_save.setBackgroundColor(getResources().getColor(R.color.unselected_tab_color));
-        markStart = markEnd = 0;
-        seekbar.setEnabled(true);
-
-        notificationView.setTextViewText(R.id.textView2, "Loop Off");
-        notification.contentView = notificationView;
-        notificationManager.notify(1, notification);
-    }
+    private Thread mLoadSoundFileThread;
+    private Thread mSaveSoundFileThread;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        try {
+            getWindow().requestFeature(Window.FEATURE_ACTION_BAR);
+            getActionBar().hide();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         setContentView(R.layout.activity_main);
-        ButterKnife.bind(this);
         mActivity = this;
-
-        /*AndroidAudioConverter.load(this, new ILoadCallback() {
-            @Override
-            public void onSuccess() {
-                // Great!
-                Log.v(TAG, "Ffmpeg Loaded");
-            }
-
-            @Override
-            public void onFailure(Exception error) {
-                // FFmpeg is not supported by device
-                Log.v(TAG, "Ffmpeg Not Supported");
-            }
-        });*/
 
         mediaPlayer = new MediaPlayer();
         utils = new Utilities();
+
+        mHandler = new Handler();
+        mProgressDialog = null;
+        mLoadSoundFileThread = null;
+        mSaveSoundFileThread = null;
+
+        initViews();
 
         btn_pp.setEnabled(false);
         btn_mark1.setEnabled(false);
@@ -299,8 +112,6 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
 
         seekbar.setOnSeekBarChangeListener(this);
 
-        startService(new Intent(this, YourService.class));
-
         MobileAds.initialize(getApplicationContext(), "ca-app-pub-6815878541496227~4563039390");
 
         AdView mAdView = (AdView) findViewById(R.id.adView);
@@ -312,13 +123,88 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
         if (!folder.exists()) {
             success = folder.mkdir();
         }
-        if (success) {
-            //Toast.makeText(this, "Folder created", Toast.LENGTH_LONG).show();
-        } else {
-            //Toast.makeText(this, "Folder not created", Toast.LENGTH_LONG).show();
-        }
-
         checkAndroidVersion();
+    }
+
+    private void initViews() {
+        SelectSong = findViewById(R.id.btn_ss);
+        song_name = findViewById(R.id.song_name);
+        seekbar = findViewById(R.id.seekbar);
+        songCurrentDuration = findViewById(R.id.songCurrentDurationLabel);
+        songTotalDuration = findViewById(R.id.songTotalDurationLabel);
+        btn_clear = findViewById(R.id.btn_clear);
+        btn_mark1 = findViewById(R.id.btn_mark1);
+        btn_mark2 = findViewById(R.id.btn_mark2);
+        btn_pp = findViewById(R.id.btn_pp);
+        btn_save = findViewById(R.id.btn_save);
+        howToUse = findViewById(R.id.how_to_use);
+        btn_save.setOnClickListener(v -> {
+            if (isWritingPermissionGranted()) {
+                try {
+                    if (!btn_mark2.isEnabled()) {
+                        saveSound(currentSongTitle + "-Looper" + System.currentTimeMillis(), markStart / 1000, markEnd / 1000);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    Toast.makeText(mActivity, "Saving Error", Toast.LENGTH_LONG).show();
+                }
+            }
+        });
+        SelectSong.setOnClickListener(v -> {
+            if (isStoragePermissionGranted()) {
+                Intent i = new Intent(getApplicationContext(), SelectActivity.class);
+                i.putExtra("LoopOrNot", false);
+                startActivityForResult(i, 100);
+            }
+        });
+        btn_pp.setOnClickListener(v -> {
+            if (mediaPlayer.isPlaying()) {
+                if (mediaPlayer != null)
+                    mediaPlayer.pause();
+            } else {
+                if (mediaPlayer != null)
+                    mediaPlayer.start();
+            }
+        });
+        btn_mark1.setOnClickListener(v -> {
+            markStart = mediaPlayer.getCurrentPosition();
+            btn_mark1.setEnabled(false);
+            btn_mark1.setBackgroundColor(getResources().getColor(R.color.unselected_tab_color));
+        });
+        btn_mark2.setOnClickListener(v -> {
+            markEnd = mediaPlayer.getCurrentPosition();
+            btn_mark2.setEnabled(false);
+            btn_mark2.setBackgroundColor(getResources().getColor(R.color.unselected_tab_color));
+            mediaPlayer.seekTo((int) markStart);
+            btn_clear.setEnabled(true);
+            btn_clear.setBackgroundColor(getResources().getColor(R.color.primary_color));
+            btn_save.setEnabled(true);
+            btn_save.setBackgroundColor(getResources().getColor(R.color.primary_color));
+            seekbar.setEnabled(false);
+        });
+        btn_clear.setOnClickListener(v -> {
+            btn_mark1.setEnabled(true);
+            btn_mark1.setBackgroundColor(getResources().getColor(R.color.primary_color));
+            btn_mark2.setEnabled(true);
+            btn_mark2.setBackgroundColor(getResources().getColor(R.color.primary_color));
+            btn_clear.setEnabled(false);
+            btn_clear.setBackgroundColor(getResources().getColor(R.color.unselected_tab_color));
+            btn_save.setEnabled(false);
+            btn_save.setBackgroundColor(getResources().getColor(R.color.unselected_tab_color));
+            markStart = markEnd = 0;
+            seekbar.setEnabled(true);
+        });
+        howToUse.setOnClickListener(v -> {
+            new AlertDialog.Builder(MainActivity.this)
+                    .setTitle(getString(R.string.how_to_use_title))
+                    .setMessage(getString(R.string.how_to_use))
+                    .setPositiveButton(
+                            R.string.alert_ok_button,
+                            (dialog, whichButton) -> {
+                            })
+                    .setCancelable(false)
+                    .show();
+        });
     }
 
     void initialReset() {
@@ -345,9 +231,8 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
         if (resultCode == 100) {
             currentSongPath = data.getExtras().getString("songPath");
             currentSongTitle = data.getExtras().getString("songTitle");
-            // play selected song
-            playSong(currentSongPath, currentSongTitle);
             initialReset();
+            loadFromFile();
         } else if (resultCode == 200) {
             Toast.makeText(mActivity, "No Loops!", Toast.LENGTH_SHORT).show();
         } else if (resultCode == 300) {
@@ -366,8 +251,6 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
                 mediaPlayer.setLooping(true);
             // Displaying Song title
             song_name.setText(currentSongTitle);
-
-            setNotification(currentSongTitle);
 
             btn_pp.setEnabled(true);
             btn_mark1.setEnabled(true);
@@ -405,71 +288,53 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
         public void run() {
             long totalDuration = mediaPlayer.getDuration();
             long currentDuration = mediaPlayer.getCurrentPosition();
-
-            // Displaying Total Duration time
             songTotalDuration.setText("" + utils.milliSecondsToTimer(totalDuration));
-            // Displaying time completed playing
             songCurrentDuration.setText("" + utils.milliSecondsToTimer(currentDuration));
-
-            // Updating progress bar
             int progress = (int) (utils.getProgressPercentage(currentDuration, totalDuration));
-            //Log.d("Progress", ""+progress);
             seekbar.setProgress(progress);
-
             if (!btn_mark2.isEnabled()) {
                 if ((markEnd < currentDuration + 100) && (markEnd > currentDuration - 100)) {
                     mediaPlayer.seekTo((int) markStart);
                 }
             }
-
-            // Running this thread after 100 milliseconds
             myHandler.postDelayed(this, 100);
         }
     };
 
-    /**
-     *
-     * */
+
     @Override
     public void onProgressChanged(SeekBar seekBar, int progress, boolean fromTouch) {
 
     }
 
-    /**
-     * When user starts moving the progress handler
-     */
+
     @Override
     public void onStartTrackingTouch(SeekBar seekBar) {
-        // remove message Handler from updating progress bar
         myHandler.removeCallbacks(mUpdateTimeTask);
     }
 
-    /**
-     * When user stops moving the progress hanlder
-     */
     @Override
     public void onStopTrackingTouch(SeekBar seekBar) {
         myHandler.removeCallbacks(mUpdateTimeTask);
         int totalDuration = mediaPlayer.getDuration();
         int currentPosition = utils.progressToTimer(seekBar.getProgress(), totalDuration);
-
-        // forward or backward to certain seconds
         mediaPlayer.seekTo(currentPosition);
-
-        // update timer progress again
         updateProgressBar();
     }
 
     @Override
     protected void onDestroy() {
         myHandler.removeCallbacks(mUpdateTimeTask);
-
-        if (notificationManager != null)
-            notificationManager.cancelAll();
-
         if (mediaPlayer != null)
             mediaPlayer.release();
-
+        closeThread(mLoadSoundFileThread);
+        closeThread(mSaveSoundFileThread);
+        mLoadSoundFileThread = null;
+        mSaveSoundFileThread = null;
+        if (mProgressDialog != null) {
+            mProgressDialog.dismiss();
+            mProgressDialog = null;
+        }
         super.onDestroy();
     }
 
@@ -484,7 +349,7 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
                 ActivityCompat.requestPermissions(mActivity, new String[]{android.Manifest.permission.READ_EXTERNAL_STORAGE}, 1);
                 return false;
             }
-        } else { //permission is automatically granted on sdk<23 upon installation
+        } else {
             Log.v(TAG, "Permission is granted");
             return true;
         }
@@ -501,86 +366,16 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
                 ActivityCompat.requestPermissions(mActivity, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
                 return false;
             }
-        } else { //permission is automatically granted on sdk<23 upon installation
+        } else {
             Log.v(TAG, "Permission is granted");
             return true;
-        }
-    }
-
-    public void setNotification(String songName) {
-        String ns = Context.NOTIFICATION_SERVICE;
-        notificationManager = (NotificationManager) getSystemService(ns);
-
-        notification = new Notification(R.mipmap.ic_launcher, null, System.currentTimeMillis());
-        notification.flags = Notification.FLAG_ONGOING_EVENT | Notification.FLAG_NO_CLEAR;
-
-        notificationView = new RemoteViews(getPackageName(), R.layout.notification);
-        notificationView.setImageViewResource(R.id.play_pause, R.drawable.pause);
-        notificationView.setTextViewText(R.id.textView1, songName);
-        notificationView.setTextViewText(R.id.textView2, "Loop Off");
-
-        //the intent that is started when the notification is clicked (works)
-        Intent notificationIntent = new Intent(this, MainActivity.class);
-        notificationIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        PendingIntent pendingNotificationIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-
-        notification.contentView = notificationView;
-        notification.contentIntent = pendingNotificationIntent;
-
-        Intent switchIntent = new Intent("diy.ananth.looper.ACTION_PLAY");
-        PendingIntent pendingSwitchIntent = PendingIntent.getBroadcast(this, 0, switchIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-
-        notificationView.setOnClickPendingIntent(R.id.play_pause, pendingSwitchIntent);
-        notificationManager.notify(1, notification);
-    }
-
-    public static class RemoteControlReceiver extends BroadcastReceiver {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                if (Objects.requireNonNull(intent.getAction()).equalsIgnoreCase("diy.ananth.looper.ACTION_PLAY")) {
-                    if (mediaPlayer.isPlaying()) {
-                        mediaPlayer.pause();
-                        notificationView.setImageViewResource(R.id.play_pause, R.drawable.play);
-                        notification.contentView = notificationView;
-                        notificationManager.notify(1, notification);
-                    } else {
-                        mediaPlayer.start();
-                        notificationView.setImageViewResource(R.id.play_pause, R.drawable.pause);
-                        notification.contentView = notificationView;
-                        notificationManager.notify(1, notification);
-                    }
-                }
-            }
-        }
-    }
-
-    public static class YourService extends Service {
-
-        @Override
-        public int onStartCommand(Intent intent, int flags, int startId) {
-            return START_STICKY;
-        }
-
-        @Nullable
-        @Override
-        public IBinder onBind(Intent intent) {
-            return null;
-        }
-
-        @Override
-        public void onTaskRemoved(Intent rootIntent) {
-            onDestroy();
         }
     }
 
     private void checkAndroidVersion() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             checkPermission();
-        } else {
-            // write your logic here
         }
-
     }
 
     @RequiresApi(api = Build.VERSION_CODES.M)
@@ -590,65 +385,366 @@ public class MainActivity extends AppCompatActivity implements SeekBar.OnSeekBar
                 .checkSelfPermission(mActivity,
                         android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
                 != PackageManager.PERMISSION_GRANTED) {
-
             if (ActivityCompat.shouldShowRequestPermissionRationale
                     (mActivity, android.Manifest.permission.READ_EXTERNAL_STORAGE) ||
                     ActivityCompat.shouldShowRequestPermissionRationale
                             (mActivity, android.Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-
-                Snackbar.make(mActivity.findViewById(android.R.id.content),
-                        "Please Grant Permissions",
-                        Snackbar.LENGTH_INDEFINITE).setAction("ENABLE",
-                        new View.OnClickListener() {
-                            @RequiresApi(api = Build.VERSION_CODES.M)
-                            @Override
-                            public void onClick(View v) {
-                                requestPermissions(
-                                        new String[]{android.Manifest.permission
-                                                .READ_EXTERNAL_STORAGE, android.Manifest.permission.WRITE_EXTERNAL_STORAGE},
-                                        PERMISSIONS_MULTIPLE_REQUEST);
-                            }
-                        }).show();
+                Toast.makeText(mActivity, getString(R.string.please_grant_permissions), Toast.LENGTH_LONG).show();
             } else {
                 requestPermissions(
                         new String[]{android.Manifest.permission
                                 .READ_EXTERNAL_STORAGE, android.Manifest.permission.WRITE_EXTERNAL_STORAGE},
                         PERMISSIONS_MULTIPLE_REQUEST);
             }
-        } else {
-            // write your logic code if permission already granted
         }
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode,
                                            @NonNull String[] permissions, @NonNull int[] grantResults) {
+        if (requestCode == PERMISSIONS_MULTIPLE_REQUEST) {
+            if (grantResults.length > 0) {
+                boolean writeExternalFile = grantResults[1] == PackageManager.PERMISSION_GRANTED;
+                boolean readExternalFile = grantResults[0] == PackageManager.PERMISSION_GRANTED;
+                if (!writeExternalFile || !readExternalFile) {
+                    Toast.makeText(mActivity, getString(R.string.please_grant_permissions), Toast.LENGTH_LONG).show();
+                }
+            }
+        }
+    }
 
-        switch (requestCode) {
-            case PERMISSIONS_MULTIPLE_REQUEST:
-                if (grantResults.length > 0) {
-                    boolean writeExternalFile = grantResults[1] == PackageManager.PERMISSION_GRANTED;
-                    boolean readExternalFile = grantResults[0] == PackageManager.PERMISSION_GRANTED;
+    private void saveSound(String title, double startTime, double endTime) {
+        final int startFrame = Utilities.secondsToFrames(startTime, mSoundFile.getSampleRate(),
+                mSoundFile.getSamplesPerFrame());
+        final int endFrame = Utilities.secondsToFrames(endTime, mSoundFile.getSampleRate(),
+                mSoundFile.getSamplesPerFrame());
+        final int duration = (int) (endTime - startTime + 0.5);
 
-                    if (writeExternalFile && readExternalFile) {
-                        // write your logic here
-                    } else {
-                        Snackbar.make(mActivity.findViewById(android.R.id.content),
-                                "Please Grant Permissions",
-                                Snackbar.LENGTH_INDEFINITE).setAction("ENABLE",
-                                new View.OnClickListener() {
-                                    @RequiresApi(api = Build.VERSION_CODES.M)
-                                    @Override
-                                    public void onClick(View v) {
-                                        requestPermissions(
-                                                new String[]{android.Manifest.permission
-                                                        .READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE},
-                                                PERMISSIONS_MULTIPLE_REQUEST);
-                                    }
-                                }).show();
+        mProgressDialog = new ProgressDialog(this);
+        mProgressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+        mProgressDialog.setTitle(R.string.progress_dialog_saving);
+        mProgressDialog.setIndeterminate(true);
+        mProgressDialog.setCancelable(false);
+        mProgressDialog.show();
+
+        // Save the sound file in a background thread
+        mSaveSoundFileThread = new Thread() {
+            public void run() {
+                // Try AAC first.
+                String outPath = makeFilename(title, ".m4a");
+                if (outPath == null) {
+                    Runnable runnable = new Runnable() {
+                        public void run() {
+                            showFinalAlert(new Exception(), R.string.no_unique_filename);
+                        }
+                    };
+                    mHandler.post(runnable);
+                    return;
+                }
+                File outFile = new File(outPath);
+                Boolean fallbackToWAV = false;
+                try {
+                    // Write the new file
+                    mSoundFile.WriteFile(outFile, startFrame, endFrame - startFrame);
+                } catch (Exception e) {
+                    // log the error and try to create a .wav file instead
+                    if (outFile.exists()) {
+                        outFile.delete();
+                    }
+                    StringWriter writer = new StringWriter();
+                    e.printStackTrace(new PrintWriter(writer));
+                    Log.e("Looper", "Error: Failed to create " + outPath);
+                    Log.e("Looper", writer.toString());
+                    fallbackToWAV = true;
+                }
+
+                // Try to create a .wav file if creating a .m4a file failed.
+                if (fallbackToWAV) {
+                    outPath = makeFilename(title, ".wav");
+                    if (outPath == null) {
+                        Runnable runnable = new Runnable() {
+                            public void run() {
+                                showFinalAlert(new Exception(), R.string.no_unique_filename);
+                            }
+                        };
+                        mHandler.post(runnable);
+                        return;
+                    }
+                    outFile = new File(outPath);
+                    try {
+                        // create the .wav file
+                        mSoundFile.WriteWAVFile(outFile, startFrame, endFrame - startFrame);
+                    } catch (Exception e) {
+                        // Creating the .wav file also failed. Stop the progress dialog, show an
+                        // error message and exit.
+                        mProgressDialog.dismiss();
+                        if (outFile.exists()) {
+                            outFile.delete();
+                        }
+
+                        CharSequence errorMessage;
+                        if (e.getMessage() != null
+                                && e.getMessage().equals("No space left on device")) {
+                            errorMessage = getResources().getText(R.string.no_space_error);
+                            e = null;
+                        } else {
+                            errorMessage = getResources().getText(R.string.write_error);
+                        }
+                        final CharSequence finalErrorMessage = errorMessage;
+                        final Exception finalException = e;
+                        Runnable runnable = new Runnable() {
+                            public void run() {
+                                showFinalAlert(finalException, finalErrorMessage);
+                            }
+                        };
+                        mHandler.post(runnable);
+                        return;
                     }
                 }
-                break;
+
+                // Try to load the new file to make sure it worked
+                try {
+                    final SoundFile.ProgressListener listener =
+                            new SoundFile.ProgressListener() {
+                                public boolean reportProgress(double frac) {
+                                    // Do nothing - we're not going to try to
+                                    // estimate when reloading a saved sound
+                                    // since it's usually fast, but hard to
+                                    // estimate anyway.
+                                    return true;  // Keep going
+                                }
+                            };
+                    SoundFile.create(outPath, listener);
+                } catch (final Exception e) {
+                    mProgressDialog.dismiss();
+                    e.printStackTrace();
+
+                    Runnable runnable = new Runnable() {
+                        public void run() {
+                            showFinalAlert(e, getResources().getText(R.string.write_error));
+                        }
+                    };
+                    mHandler.post(runnable);
+                    return;
+                }
+
+                mProgressDialog.dismiss();
+
+                final String finalOutPath = outPath;
+                Runnable runnable = new Runnable() {
+                    public void run() {
+                        afterSavingRingtone(title,
+                                finalOutPath,
+                                duration);
+                    }
+                };
+                mHandler.post(runnable);
+            }
+        };
+        mSaveSoundFileThread.start();
+    }
+
+    private void loadFromFile() {
+        mFile = new File(currentSongPath);
+
+        SongMetadataReader metadataReader = new SongMetadataReader(
+                this, currentSongPath);
+        mTitle = metadataReader.mTitle;
+        mArtist = metadataReader.mArtist;
+
+        String titleLabel = mTitle;
+        if (mArtist != null && mArtist.length() > 0) {
+            titleLabel += " - " + mArtist;
         }
+        setTitle(titleLabel);
+
+        mLoadingLastUpdateTime = getCurrentTime();
+        mLoadingKeepGoing = true;
+        mFinishActivity = false;
+        mProgressDialog = new ProgressDialog(MainActivity.this);
+        mProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+        mProgressDialog.setTitle(R.string.progress_dialog_loading);
+        mProgressDialog.setCancelable(true);
+        mProgressDialog.setOnCancelListener(
+                new DialogInterface.OnCancelListener() {
+                    public void onCancel(DialogInterface dialog) {
+                        mLoadingKeepGoing = false;
+                        mFinishActivity = true;
+                    }
+                });
+        mProgressDialog.show();
+
+        final SoundFile.ProgressListener listener =
+                new SoundFile.ProgressListener() {
+                    public boolean reportProgress(double fractionComplete) {
+                        long now = getCurrentTime();
+                        if (now - mLoadingLastUpdateTime > 100) {
+                            mProgressDialog.setProgress(
+                                    (int) (mProgressDialog.getMax() * fractionComplete));
+                            mLoadingLastUpdateTime = now;
+                        }
+                        return mLoadingKeepGoing;
+                    }
+                };
+
+        // Load the sound file in a background thread
+        mLoadSoundFileThread = new Thread() {
+            public void run() {
+                try {
+                    mSoundFile = SoundFile.create(mFile.getAbsolutePath(), listener);
+
+                    if (mSoundFile == null) {
+                        mProgressDialog.dismiss();
+                        String name = mFile.getName().toLowerCase();
+                        String[] components = name.split("\\.");
+                        String err;
+                        if (components.length < 2) {
+                            err = getResources().getString(
+                                    R.string.no_extension_error);
+                        } else {
+                            err = getResources().getString(
+                                    R.string.bad_extension_error) + " " +
+                                    components[components.length - 1];
+                        }
+                        final String finalErr = err;
+                        Runnable runnable = new Runnable() {
+                            public void run() {
+                                showFinalAlert(new Exception(), finalErr);
+                            }
+                        };
+                        mHandler.post(runnable);
+                        return;
+                    }
+                } catch (final Exception e) {
+                    mProgressDialog.dismiss();
+                    e.printStackTrace();
+
+                    Runnable runnable = new Runnable() {
+                        public void run() {
+                            showFinalAlert(e, getResources().getText(R.string.read_error));
+                        }
+                    };
+                    mHandler.post(runnable);
+                    return;
+                }
+                mProgressDialog.dismiss();
+                if (mLoadingKeepGoing) {
+                    Runnable runnable = new Runnable() {
+                        public void run() {
+                            finishOpeningSoundFile();
+                        }
+                    };
+                    mHandler.post(runnable);
+                } else if (mFinishActivity) {
+                    MainActivity.this.finish();
+                }
+            }
+        };
+        mLoadSoundFileThread.start();
+    }
+
+    private void finishOpeningSoundFile() {
+        mCaption =
+                mSoundFile.getFiletype() + ", " +
+                        mSoundFile.getSampleRate() + " Hz, " +
+                        mSoundFile.getAvgBitrateKbps() + " kbps, " +
+                        getResources().getString(R.string.time_seconds);
+        playSong(currentSongPath, currentSongTitle);
+    }
+
+    private void showFinalAlert(Exception e, int messageResourceId) {
+        showFinalAlert(e, getResources().getText(messageResourceId));
+    }
+
+    private void showFinalAlert(Exception e, CharSequence message) {
+        CharSequence title;
+        if (e != null) {
+            title = getResources().getText(R.string.alert_title_failure);
+            setResult(RESULT_CANCELED, new Intent());
+        } else {
+            Log.v("Looper", "Success: " + message);
+            title = getResources().getText(R.string.alert_title_success);
+        }
+
+        new AlertDialog.Builder(MainActivity.this)
+                .setTitle(title)
+                .setMessage(message)
+                .setPositiveButton(
+                        R.string.alert_ok_button,
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog,
+                                                int whichButton) {
+                                finish();
+                            }
+                        })
+                .setCancelable(false)
+                .show();
+    }
+
+    private long getCurrentTime() {
+        return System.nanoTime() / 1000000;
+    }
+
+    private String makeFilename(String title, String s) {
+        return Environment.getExternalStorageDirectory().getAbsolutePath() + "/Looper/"
+                + title + s;
+    }
+
+    private void closeThread(Thread thread) {
+        if (thread != null && thread.isAlive()) {
+            try {
+                thread.join();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void afterSavingRingtone(String title,
+                                     String outPath,
+                                     int duration) {
+        File outFile = new File(outPath);
+        long fileSize = outFile.length();
+        if (fileSize <= 512) {
+            outFile.delete();
+            new AlertDialog.Builder(this)
+                    .setTitle(R.string.alert_title_failure)
+                    .setMessage(R.string.too_small_error)
+                    .setPositiveButton(R.string.alert_ok_button, null)
+                    .setCancelable(false)
+                    .show();
+            return;
+        }
+
+        // Create the database record, pointing to the existing file path
+        String mimeType;
+        if (outPath.endsWith(".m4a")) {
+            mimeType = "audio/mp4a-latm";
+        } else if (outPath.endsWith(".wav")) {
+            mimeType = "audio/wav";
+        } else {
+            // This should never happen.
+            mimeType = "audio/mpeg";
+        }
+
+        String artist = "" + getResources().getText(R.string.artist_name);
+
+        ContentValues values = new ContentValues();
+        values.put(MediaStore.MediaColumns.DATA, outPath);
+        values.put(MediaStore.MediaColumns.TITLE, title);
+        values.put(MediaStore.MediaColumns.SIZE, fileSize);
+        values.put(MediaStore.MediaColumns.MIME_TYPE, mimeType);
+        values.put(MediaStore.Audio.Media.ARTIST, artist);
+        values.put(MediaStore.Audio.Media.DURATION, duration);
+
+        // Insert it into the database
+        Uri uri = MediaStore.Audio.Media.getContentUriForPath(outPath);
+        final Uri newUri = getContentResolver().insert(uri, values);
+        setResult(RESULT_OK, new Intent().setData(newUri));
+
+        //File Saved
+        btn_save.setEnabled(false);
+        btn_save.setBackgroundColor(getResources().getColor(R.color.unselected_tab_color));
+        Toast.makeText(mActivity, "Loop Saved", Toast.LENGTH_LONG).show();
     }
 }
