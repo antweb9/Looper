@@ -8,7 +8,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.Loader;
 import android.database.Cursor;
-import android.database.MergeCursor;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
@@ -68,58 +67,56 @@ public class SelectActivity
 
         mShowAll = false;
 
-        if (getIntent().hasExtra("LoopOrNot") && getIntent().getBooleanExtra("LoopOrNot", false)) {
-
-        } else {
-            String status = Environment.getExternalStorageState();
-            if (status.equals(Environment.MEDIA_MOUNTED_READ_ONLY)) {
-                showFinalAlert(getResources().getText(R.string.sdcard_readonly));
-                return;
-            }
-            if (status.equals(Environment.MEDIA_SHARED)) {
-                showFinalAlert(getResources().getText(R.string.sdcard_shared));
-                return;
-            }
-            if (!status.equals(Environment.MEDIA_MOUNTED)) {
-                showFinalAlert(getResources().getText(R.string.please_grant_permissions));
-                return;
-            }
-            setContentView(R.layout.media_select);
-            try {
-                mAdapter = new SimpleCursorAdapter(
-                        this,
-                        R.layout.media_select_row,
-                        null,
-                        new String[]{
-                                MediaStore.Audio.Media.ARTIST,
-                                MediaStore.Audio.Media.ALBUM,
-                                MediaStore.Audio.Media.TITLE,
-                                MediaStore.Audio.Media._ID,
-                                MediaStore.Audio.Media._ID},
-                        new int[]{
-                                R.id.row_artist,
-                                R.id.row_album,
-                                R.id.row_title,
-                                R.id.row_icon,
-                                R.id.row_options_button},
-                        0);
-                setListAdapter(mAdapter);
-                getListView().setItemsCanFocus(true);
-                getListView().setOnItemClickListener(new OnItemClickListener() {
-                    public void onItemClick(AdapterView<?> parent,
-                                            View view,
-                                            int position,
-                                            long id) {
-                        startLooperEditor();
-                    }
-                });
-                mInternalCursor = null;
-                mExternalCursor = null;
-                getLoaderManager().initLoader(INTERNAL_CURSOR_ID, null, this);
-                getLoaderManager().initLoader(EXTERNAL_CURSOR_ID, null, this);
-            } catch (Exception e) {
-                Log.e("Looper", e.toString());
-            }
+        String status = Environment.getExternalStorageState();
+        if (status.equals(Environment.MEDIA_MOUNTED_READ_ONLY)) {
+            showFinalAlert(getResources().getText(R.string.sdcard_readonly));
+            return;
+        }
+        if (status.equals(Environment.MEDIA_SHARED)) {
+            showFinalAlert(getResources().getText(R.string.sdcard_shared));
+            return;
+        }
+        if (!status.equals(Environment.MEDIA_MOUNTED)) {
+            showFinalAlert(getResources().getText(R.string.please_grant_permissions));
+            return;
+        }
+        setContentView(R.layout.media_select);
+        try {
+            mAdapter = new SimpleCursorAdapter(
+                    this,
+                    R.layout.media_select_row,
+                    null,
+                    new String[]{
+                            MediaStore.Audio.Media.ARTIST,
+                            MediaStore.Audio.Media.ALBUM,
+                            MediaStore.Audio.Media.TITLE,
+                            MediaStore.Audio.Media._ID,
+                            MediaStore.Audio.Media._ID},
+                    new int[]{
+                            R.id.row_artist,
+                            R.id.row_album,
+                            R.id.row_title,
+                            R.id.row_icon,
+                            R.id.row_options_button},
+                    0);
+            setListAdapter(mAdapter);
+            getListView().setItemsCanFocus(true);
+            getListView().setOnItemClickListener(new OnItemClickListener() {
+                public void onItemClick(AdapterView<?> parent,
+                                        View view,
+                                        int position,
+                                        long id) {
+                    startLooperEditor();
+                }
+            });
+            mInternalCursor = null;
+            mExternalCursor = null;
+            getLoaderManager().initLoader(INTERNAL_CURSOR_ID, null, this);
+            getLoaderManager().initLoader(EXTERNAL_CURSOR_ID, null, this);
+        } catch (Exception e) {
+            Log.e("Looper", e.toString());
+            Toast.makeText(this, "File Opening Error!", Toast.LENGTH_LONG).show();
+            finish();
         }
 
         mAdapter.setViewBinder(new SimpleCursorAdapter.ViewBinder() {
@@ -146,33 +143,39 @@ public class SelectActivity
     }
 
     private void setSoundIconFromCursor(ImageView view, Cursor cursor) {
-        if (0 != cursor.getInt(cursor.getColumnIndexOrThrow(
-                MediaStore.Audio.Media.IS_RINGTONE))) {
-            view.setImageResource(R.drawable.type_ringtone);
-            ((View) view.getParent()).setBackgroundColor(
-                    getResources().getColor(R.color.type_bkgnd_ringtone));
-        } else if (0 != cursor.getInt(cursor.getColumnIndexOrThrow(
-                MediaStore.Audio.Media.IS_ALARM))) {
-            view.setImageResource(R.drawable.type_alarm);
-            ((View) view.getParent()).setBackgroundColor(
-                    getResources().getColor(R.color.type_bkgnd_alarm));
-        } else if (0 != cursor.getInt(cursor.getColumnIndexOrThrow(
-                MediaStore.Audio.Media.IS_NOTIFICATION))) {
-            view.setImageResource(R.drawable.type_notification);
-            ((View) view.getParent()).setBackgroundColor(
-                    getResources().getColor(R.color.type_bkgnd_notification));
-        } else if (0 != cursor.getInt(cursor.getColumnIndexOrThrow(
-                MediaStore.Audio.Media.IS_MUSIC))) {
+        try {
+            if (0 != cursor.getInt(cursor.getColumnIndexOrThrow(
+                    MediaStore.Audio.Media.IS_RINGTONE))) {
+                view.setImageResource(R.drawable.type_ringtone);
+                ((View) view.getParent()).setBackgroundColor(
+                        getResources().getColor(R.color.type_bkgnd_ringtone));
+            } else if (0 != cursor.getInt(cursor.getColumnIndexOrThrow(
+                    MediaStore.Audio.Media.IS_ALARM))) {
+                view.setImageResource(R.drawable.type_alarm);
+                ((View) view.getParent()).setBackgroundColor(
+                        getResources().getColor(R.color.type_bkgnd_alarm));
+            } else if (0 != cursor.getInt(cursor.getColumnIndexOrThrow(
+                    MediaStore.Audio.Media.IS_NOTIFICATION))) {
+                view.setImageResource(R.drawable.type_notification);
+                ((View) view.getParent()).setBackgroundColor(
+                        getResources().getColor(R.color.type_bkgnd_notification));
+            } else if (0 != cursor.getInt(cursor.getColumnIndexOrThrow(
+                    MediaStore.Audio.Media.IS_MUSIC))) {
+                view.setImageResource(R.drawable.type_music);
+                ((View) view.getParent()).setBackgroundColor(
+                        getResources().getColor(R.color.type_bkgnd_music));
+            }
+            String filename = cursor.getString(cursor.getColumnIndexOrThrow(
+                    MediaStore.Audio.Media.DATA));
+            if (!SoundFile.isFilenameSupported(filename)) {
+                ((View) view.getParent()).setBackgroundColor(
+                        getResources().getColor(R.color.type_bkgnd_unsupported));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
             view.setImageResource(R.drawable.type_music);
             ((View) view.getParent()).setBackgroundColor(
                     getResources().getColor(R.color.type_bkgnd_music));
-        }
-
-        String filename = cursor.getString(cursor.getColumnIndexOrThrow(
-                MediaStore.Audio.Media.DATA));
-        if (!SoundFile.isFilenameSupported(filename)) {
-            ((View) view.getParent()).setBackgroundColor(
-                    getResources().getColor(R.color.type_bkgnd_unsupported));
         }
     }
 
@@ -544,6 +547,11 @@ public class SelectActivity
             }
             selection += ")";
 
+            if (getIntent().hasExtra("LoopOrNot") &&
+                    getIntent().getBooleanExtra("LoopOrNot", false)) {
+                selectionArgsList.add("%/Looper/%");
+                selection = "(" + selection + ") AND (_DATA LIKE ?)";
+            }
             selection = "(" + selection + ") AND (_DATA NOT LIKE ?)";
             selectionArgsList.add("%espeak-data/scratch%");
         }
@@ -584,11 +592,16 @@ public class SelectActivity
             default:
                 return;
         }
-        // TODO: should I use a mutex/synchronized block here?
-        if (mInternalCursor != null && mExternalCursor != null) {
+        if(mExternalCursor!=null && mExternalCursor.getCount()==0){
+            Toast.makeText(this, "No Loops Saved!", Toast.LENGTH_LONG).show();
+            finish();
+        }
+        mAdapter.swapCursor(mExternalCursor);
+        //If required to do all
+        /*if (mInternalCursor != null && mExternalCursor != null) {
             Cursor mergeCursor = new MergeCursor(new Cursor[]{mInternalCursor, mExternalCursor});
             mAdapter.swapCursor(mergeCursor);
-        }
+        }*/
     }
 
     /* Implementation of LoaderCallbacks.onLoaderReset */

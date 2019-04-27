@@ -20,8 +20,8 @@ import android.support.annotation.RequiresApi;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
-import android.view.Window;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -59,31 +59,20 @@ public class MainActivity extends Activity implements SeekBar.OnSeekBarChangeLis
     private Button btn_mark2;
     private Button btn_clear;
     private Button btn_save;
-    private long mLoadingLastUpdateTime;
-    private boolean mLoadingKeepGoing;
-    private boolean mFinishActivity;
+    private ImageView looperImage;
     private ProgressDialog mProgressDialog;
     private SoundFile mSoundFile;
     private File mFile;
     private String mArtist;
     private String mTitle;
-    private String mCaption = "";
     private Handler mHandler;
     private TextView howToUse;
 
-    private Thread mLoadSoundFileThread;
     private Thread mSaveSoundFileThread;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        try {
-            getWindow().requestFeature(Window.FEATURE_ACTION_BAR);
-            getActionBar().hide();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
 
         setContentView(R.layout.activity_main);
         mActivity = this;
@@ -93,7 +82,6 @@ public class MainActivity extends Activity implements SeekBar.OnSeekBarChangeLis
 
         mHandler = new Handler();
         mProgressDialog = null;
-        mLoadSoundFileThread = null;
         mSaveSoundFileThread = null;
 
         initViews();
@@ -138,6 +126,14 @@ public class MainActivity extends Activity implements SeekBar.OnSeekBarChangeLis
         btn_pp = findViewById(R.id.btn_pp);
         btn_save = findViewById(R.id.btn_save);
         howToUse = findViewById(R.id.how_to_use);
+        looperImage = findViewById(R.id.looper_image);
+        looperImage.setOnClickListener(v -> {
+            if (isStoragePermissionGranted()) {
+                Intent i = new Intent(getApplicationContext(), SelectActivity.class);
+                i.putExtra("LoopOrNot", true);
+                startActivityForResult(i, 100);
+            }
+        });
         btn_save.setOnClickListener(v -> {
             if (isWritingPermissionGranted()) {
                 try {
@@ -327,9 +323,7 @@ public class MainActivity extends Activity implements SeekBar.OnSeekBarChangeLis
         myHandler.removeCallbacks(mUpdateTimeTask);
         if (mediaPlayer != null)
             mediaPlayer.release();
-        closeThread(mLoadSoundFileThread);
         closeThread(mSaveSoundFileThread);
-        mLoadSoundFileThread = null;
         mSaveSoundFileThread = null;
         if (mProgressDialog != null) {
             mProgressDialog.dismiss();
@@ -558,97 +552,15 @@ public class MainActivity extends Activity implements SeekBar.OnSeekBarChangeLis
         }
         setTitle(titleLabel);
 
-        mLoadingLastUpdateTime = getCurrentTime();
-        mLoadingKeepGoing = true;
-        mFinishActivity = false;
-        mProgressDialog = new ProgressDialog(MainActivity.this);
-        mProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-        mProgressDialog.setTitle(R.string.progress_dialog_loading);
-        mProgressDialog.setCancelable(true);
-        mProgressDialog.setOnCancelListener(
-                new DialogInterface.OnCancelListener() {
-                    public void onCancel(DialogInterface dialog) {
-                        mLoadingKeepGoing = false;
-                        mFinishActivity = true;
-                    }
-                });
-        mProgressDialog.show();
-
-        final SoundFile.ProgressListener listener =
-                new SoundFile.ProgressListener() {
-                    public boolean reportProgress(double fractionComplete) {
-                        long now = getCurrentTime();
-                        if (now - mLoadingLastUpdateTime > 100) {
-                            mProgressDialog.setProgress(
-                                    (int) (mProgressDialog.getMax() * fractionComplete));
-                            mLoadingLastUpdateTime = now;
-                        }
-                        return mLoadingKeepGoing;
-                    }
-                };
-
-        // Load the sound file in a background thread
-        mLoadSoundFileThread = new Thread() {
-            public void run() {
-                try {
-                    mSoundFile = SoundFile.create(mFile.getAbsolutePath(), listener);
-
-                    if (mSoundFile == null) {
-                        mProgressDialog.dismiss();
-                        String name = mFile.getName().toLowerCase();
-                        String[] components = name.split("\\.");
-                        String err;
-                        if (components.length < 2) {
-                            err = getResources().getString(
-                                    R.string.no_extension_error);
-                        } else {
-                            err = getResources().getString(
-                                    R.string.bad_extension_error) + " " +
-                                    components[components.length - 1];
-                        }
-                        final String finalErr = err;
-                        Runnable runnable = new Runnable() {
-                            public void run() {
-                                showFinalAlert(new Exception(), finalErr);
-                            }
-                        };
-                        mHandler.post(runnable);
-                        return;
-                    }
-                } catch (final Exception e) {
-                    mProgressDialog.dismiss();
-                    e.printStackTrace();
-
-                    Runnable runnable = new Runnable() {
-                        public void run() {
-                            showFinalAlert(e, getResources().getText(R.string.read_error));
-                        }
-                    };
-                    mHandler.post(runnable);
-                    return;
-                }
-                mProgressDialog.dismiss();
-                if (mLoadingKeepGoing) {
-                    Runnable runnable = new Runnable() {
-                        public void run() {
-                            finishOpeningSoundFile();
-                        }
-                    };
-                    mHandler.post(runnable);
-                } else if (mFinishActivity) {
-                    MainActivity.this.finish();
-                }
-            }
-        };
-        mLoadSoundFileThread.start();
+        try {
+            mSoundFile = SoundFile.create(mFile.getAbsolutePath());
+            finishOpeningSoundFile();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private void finishOpeningSoundFile() {
-        mCaption =
-                mSoundFile.getFiletype() + ", " +
-                        mSoundFile.getSampleRate() + " Hz, " +
-                        mSoundFile.getAvgBitrateKbps() + " kbps, " +
-                        getResources().getString(R.string.time_seconds);
         playSong(currentSongPath, currentSongTitle);
     }
 
@@ -736,6 +648,10 @@ public class MainActivity extends Activity implements SeekBar.OnSeekBarChangeLis
         values.put(MediaStore.MediaColumns.MIME_TYPE, mimeType);
         values.put(MediaStore.Audio.Media.ARTIST, artist);
         values.put(MediaStore.Audio.Media.DURATION, duration);
+        values.put(MediaStore.Audio.Media.IS_RINGTONE, 0);
+        values.put(MediaStore.Audio.Media.IS_NOTIFICATION, 0);
+        values.put(MediaStore.Audio.Media.IS_ALARM, 0);
+        values.put(MediaStore.Audio.Media.IS_MUSIC, 1);
 
         // Insert it into the database
         Uri uri = MediaStore.Audio.Media.getContentUriForPath(outPath);

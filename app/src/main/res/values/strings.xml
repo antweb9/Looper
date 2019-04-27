@@ -112,6 +112,6 @@
      About
      -->
     <string name="about_title">About Looper</string>
-    <string name="how_to_use"><![CDATA[1. Select a song.\n2. While playing press MARK 1 where you want the loop to begin and press MARK 2 where you want the loop to end.\n3. It will auto-loop and you can also CLEAR the loop while playing. > / || is Play / Pause.\n4. Files are saved in the Looper folder in your File Explorer/Manager.\n5. Search "Looper" in search to view your saved Loops.\n6. Only Loops will be repeated by the player.\n7. Enjoy your favorite song parts!]]></string>
+    <string name="how_to_use"><![CDATA[1. Select a song.\n2. While playing press MARK 1 where you want the loop to begin and press MARK 2 where you want the loop to end.\n3. It will auto-loop and you can also CLEAR the loop while playing.\n4. > / || is Play / Pause.\n5. Files are saved in the Looper folder in your File Explorer/Manager.\n6. Click on Looper Icon or search "Looper" in all songs view to view your saved Loops.\n7. Only Loops will be repeated by the player.\n8. Enjoy your favorite song parts!]]></string>
     <string name="how_to_use_title">How to use?</string>
 </resources>
