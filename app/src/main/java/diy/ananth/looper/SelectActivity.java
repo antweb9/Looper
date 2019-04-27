@@ -8,6 +8,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.Loader;
 import android.database.Cursor;
+import android.database.MergeCursor;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
@@ -592,12 +593,12 @@ public class SelectActivity
             default:
                 return;
         }
-        if(mExternalCursor!=null && mExternalCursor.getCount()==0){
+        if (mExternalCursor != null && mExternalCursor.getCount() == 0) {
             Toast.makeText(this, "No Loops Saved!", Toast.LENGTH_LONG).show();
             finish();
         }
         mAdapter.swapCursor(mExternalCursor);
-        //If required to do all
+        //If all required
         /*if (mInternalCursor != null && mExternalCursor != null) {
             Cursor mergeCursor = new MergeCursor(new Cursor[]{mInternalCursor, mExternalCursor});
             mAdapter.swapCursor(mergeCursor);
